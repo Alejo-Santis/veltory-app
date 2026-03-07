@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ProductStatus;
+use App\Enums\TypeStockMovement;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
@@ -41,9 +42,13 @@ class ProductController extends Controller
         return Inertia::render('Products/Index', [
             'products' => $products,
             'filters'  => $request->only(['search', 'status', 'low_stock']),
-            'statuses' => collect(ProductStatus::cases())->map(fn ($s) => [
+            'statuses'       => collect(ProductStatus::cases())->map(fn ($s) => [
                 'value' => $s->value,
                 'label' => $s->label(),
+            ]),
+            'movementTypes'  => collect(TypeStockMovement::cases())->map(fn ($t) => [
+                'value' => $t->value,
+                'label' => $t->label(),
             ]),
         ]);
     }

@@ -37,7 +37,16 @@
         { name: 'Proveedores',  href: '/suppliers',      icon: 'truck' },
         { name: 'Unidades',     href: '/units',          icon: 'ruler' },
         { name: 'Movimientos',  href: '/stock-movements',icon: 'activity' },
+        { name: 'Bodegas',      href: '/warehouses',     icon: 'warehouse' },
+        { name: 'Traslados',    href: '/transfers',      icon: 'transfer' },
     ];
+
+    // Sección de administración — solo visible para admin
+    const adminNav = [
+        { name: 'Usuarios',     href: '/users',          icon: 'users' },
+    ];
+
+    const isAdmin = $derived($page.props.auth?.user?.is_admin ?? false);
 
     function isActive(href) {
         if (href === '/') return $page.url === '/';
@@ -82,15 +91,14 @@
 
         <!-- Navigation -->
         <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
-            {#each navigation as item}
+            {#each [...navigation, ...(isAdmin ? adminNav : [])] as item}
+                {@const active = isActive(item.href)}
                 <a
                     href={item.href}
                     title={collapsed ? item.name : ''}
                     class="flex items-center rounded-lg text-sm font-medium transition-colors
                         {collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'}
-                        {isActive(item.href)
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}"
+                        {active ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}"
                 >
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         {#if item.icon === 'grid'}
@@ -105,6 +113,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                         {:else if item.icon === 'activity'}
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        {:else if item.icon === 'warehouse'}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        {:else if item.icon === 'transfer'}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        {:else if item.icon === 'users'}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                         {/if}
                     </svg>
                     {#if !collapsed}

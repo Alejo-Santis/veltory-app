@@ -869,6 +869,147 @@ class Product extends Model
 
 ---
 
+## 19. MÓDULO DE BODEGAS Y TRASLADOS *(pendiente de implementar — Fase 5)*
+
+> Permite gestionar múltiples ubicaciones físicas (bodegas, sucursales, tiendas) y registrar traslados de mercancía entre ellas con trazabilidad completa.
+
+### 19.1 Modelo de datos
+
+#### `warehouses` (bodegas / sucursales)
+
+```sql
+id              BIGINT UNSIGNED PK AUTO_INCREMENT
+uuid            UUID UNIQUE NOT NULL
+code            VARCHAR(20) UNIQUE NOT NULL    -- "BG-01", "SUC-NORTE"
+name            VARCHAR(150) NOT NULL
+type            ENUM('warehouse','branch','store') DEFAULT 'warehouse'
+address         TEXT NULL
+city            VARCHAR(100) NULL
+phone           VARCHAR(30) NULL
+manager_name    VARCHAR(150) NULL
+is_active       BOOLEAN DEFAULT TRUE
+notes           TEXT NULL
+created_at      TIMESTAMP
+updated_at      TIMESTAMP
+deleted_at      TIMESTAMP NULL
+```
+
+#### `warehouse_stock` (stock por ubicación — pivot)
+
+```sql
+id              BIGINT UNSIGNED PK AUTO_INCREMENT
+warehouse_id    BIGINT UNSIGNED NOT NULL FK → warehouses.id
+product_id      BIGINT UNSIGNED NOT NULL FK → products.id
+quantity        INT NOT NULL DEFAULT 0
+updated_at      TIMESTAMP
+UNIQUE(warehouse_id, product_id)
+```
+
+> **Decisión de diseño:** el `stock_quantity` en `products` pasa a ser la suma de todos los `warehouse_stock.quantity`. Se puede mantener sincronizado via observer o calcularse on-the-fly. Recomendado: mantenerlo como cache desnormalizado y actualizarlo al completar traslados.
+
+#### `transfers` (traslados)
+
+```sql
+id              BIGINT UNSIGNED PK AUTO_INCREMENT
+uuid            UUID UNIQUE NOT NULL
+reference       VARCHAR(50) UNIQUE NULL        -- "TRF-20260001"
+from_warehouse_id  BIGINT UNSIGNED NOT NULL FK → warehouses.id
+to_warehouse_id    BIGINT UNSIGNED NOT NULL FK → warehouses.id
+status          ENUM('draft','requested','approved','in_transit','completed','cancelled') DEFAULT 'draft'
+requested_by    BIGINT UNSIGNED NULL FK → users.id
+approved_by     BIGINT UNSIGNED NULL FK → users.id
+notes           TEXT NULL
+requested_at    TIMESTAMP NULL
+approved_at     TIMESTAMP NULL
+shipped_at      TIMESTAMP NULL
+completed_at    TIMESTAMP NULL
+cancelled_at    TIMESTAMP NULL
+created_at      TIMESTAMP
+updated_at      TIMESTAMP
+```
+
+#### `transfer_items` (líneas del traslado)
+
+```sql
+id                  BIGINT UNSIGNED PK AUTO_INCREMENT
+transfer_id         BIGINT UNSIGNED NOT NULL FK → transfers.id
+product_id          BIGINT UNSIGNED NOT NULL FK → products.id
+quantity_requested  INT NOT NULL               -- cantidad solicitada
+quantity_sent       INT NULL                   -- cantidad despachada (al enviar)
+quantity_received   INT NULL                   -- cantidad recibida (al completar)
+notes               TEXT NULL
+```
+
+### 19.2 Flujo de estados del traslado
+
+```
+draft → requested → approved → in_transit → completed
+                ↘                         ↘
+              cancelled                 cancelled
+```
+
+| Estado | Quién | Acción |
+|---|---|---|
+| `draft` | Solicitante | Crea el traslado con ítems |
+| `requested` | Solicitante | Confirma y envía para aprobación |
+| `approved` | Manager/Admin | Aprueba; se reserva el stock en bodega origen |
+| `in_transit` | Bodeguero | Confirma despacho; deduce stock origen |
+| `completed` | Receptor | Confirma recepción; suma stock destino |
+| `cancelled` | Cualquiera con permiso | Libera reserva si estaba aprobado |
+
+### 19.3 Relaciones Eloquent
+
+```php
+// Warehouse
+public function stock(): HasMany            // → WarehouseStock[]
+public function transfersOut(): HasMany     // → Transfer[] (from_warehouse_id)
+public function transfersIn(): HasMany      // → Transfer[] (to_warehouse_id)
+public function products(): BelongsToMany  // → Product[] (via warehouse_stock)
+
+// Transfer
+public function fromWarehouse(): BelongsTo  // → Warehouse
+public function toWarehouse(): BelongsTo    // → Warehouse
+public function items(): HasMany            // → TransferItem[]
+public function requestedBy(): BelongsTo    // → User
+public function approvedBy(): BelongsTo     // → User
+
+// TransferItem
+public function transfer(): BelongsTo       // → Transfer
+public function product(): BelongsTo        // → Product
+```
+
+### 19.4 Controladores y rutas sugeridas
+
+```php
+Route::resource('warehouses', WarehouseController::class)->except(['show']);
+Route::resource('transfers',  TransferController::class)->except(['show']);
+Route::patch('transfers/{transfer}/request',   [TransferController::class, 'request'])->name('transfers.request');
+Route::patch('transfers/{transfer}/approve',   [TransferController::class, 'approve'])->name('transfers.approve');
+Route::patch('transfers/{transfer}/ship',      [TransferController::class, 'ship'])->name('transfers.ship');
+Route::patch('transfers/{transfer}/complete',  [TransferController::class, 'complete'])->name('transfers.complete');
+Route::patch('transfers/{transfer}/cancel',    [TransferController::class, 'cancel'])->name('transfers.cancel');
+```
+
+### 19.5 Páginas frontend
+
+| Página | Descripción |
+|---|---|
+| `Warehouses/Index` | Listado de bodegas con stock total y traslados pendientes |
+| `Warehouses/Create` / `Edit` | Formulario de bodega |
+| `Transfers/Index` | Listado de traslados con filtros por estado/bodega/fecha |
+| `Transfers/Create` | Wizard: seleccionar origen→destino → agregar ítems |
+| `Transfers/Show` | Detalle del traslado con líneas, estado, historial de acciones |
+
+### 19.6 Consideraciones de implementación
+
+- Al `approve`: crear registro en `warehouse_stock` con `quantity` reservada (no descontar aún).
+- Al `ship`: descontar `warehouse_stock` en bodega origen, actualizar `quantity_sent` en ítems.
+- Al `complete`: sumar `warehouse_stock` en bodega destino con `quantity_received` (puede diferir de `quantity_sent` por daños/faltantes). Generar `StockMovement` de tipo `transfer_out` y `transfer_in`.
+- Agregar `transfer_out` y `transfer_in` al enum `TypeStockMovement` cuando se implemente.
+- El módulo de roles (Fase 4) definirá quién puede aprobar/despachar vs. quién solo solicita.
+
+---
+
 ## 18. TECNOLOGÍAS ADICIONALES PLANIFICADAS
 
 | Paquete | Versión | Uso |

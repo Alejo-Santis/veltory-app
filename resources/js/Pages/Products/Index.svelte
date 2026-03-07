@@ -1,13 +1,54 @@
 <script>
-    import { router } from '@inertiajs/svelte';
+    import { useForm, router } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
 
-    let { products, filters = {}, statuses = [] } = $props();
+    let { products, filters = {}, statuses = [], movementTypes = [] } = $props();
 
     let search     = $state(filters.search     ?? '');
     let status     = $state(filters.status     ?? '');
     let low_stock  = $state(filters.low_stock  ?? false);
     let deleting   = $state(null);
+
+    // ── Stock modal ───────────────────────────────────────────
+    let stockProduct = $state(null);
+
+    const stockForm = useForm({
+        type:      'in',
+        quantity:  1,
+        unit_cost: '',
+        reference: '',
+        notes:     '',
+    });
+
+    function openStockModal(product) {
+        stockProduct = product;
+        $stockForm.reset();
+        $stockForm.clearErrors();
+        $stockForm.type     = 'in';
+        $stockForm.quantity = 1;
+    }
+
+    function closeStockModal() {
+        stockProduct = null;
+        $stockForm.reset();
+        $stockForm.clearErrors();
+    }
+
+    function submitStock(e) {
+        e.preventDefault();
+        if (!stockProduct) return;
+        $stockForm.post(`/products/${stockProduct.uuid}/stock`, {
+            onSuccess: closeStockModal,
+        });
+    }
+
+    function stockPreview(type, qty, current) {
+        const q = parseInt(qty) || 0;
+        if (type === 'in'  || type === 'return')     return current + q;
+        if (type === 'out' || type === 'loss')        return Math.max(0, current - q);
+        if (type === 'adjustment')                    return q;
+        return current;
+    }
 
     let searchTimer;
     function onSearchInput() {
@@ -213,6 +254,15 @@
                                     <!-- Actions -->
                                     <td class="px-4 py-3">
                                         <div class="flex items-center justify-end gap-1">
+                                            <button
+                                                onclick={() => openStockModal(product)}
+                                                class="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-700 rounded-md transition-colors"
+                                                title="Ajustar stock"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                                                </svg>
+                                            </button>
                                             <a
                                                 href="/products/{product.uuid}/edit"
                                                 class="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-slate-700 rounded-md transition-colors"
@@ -266,6 +316,115 @@
         </div>
     </div>
 </AppLayout>
+
+<!-- Stock adjustment modal -->
+{#if stockProduct}
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick={closeStockModal}></div>
+        <div class="relative bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+
+            <div class="mb-5">
+                <h3 class="text-base font-semibold text-white">Ajustar stock</h3>
+                <p class="text-sm text-slate-400 mt-0.5">{stockProduct.name}</p>
+            </div>
+
+            <form onsubmit={submitStock} class="space-y-4">
+
+                <!-- Tipo -->
+                <div>
+                    <label for="sp-type" class="block text-sm font-medium text-slate-300 mb-1.5">
+                        Tipo de movimiento <span class="text-red-400">*</span>
+                    </label>
+                    <select
+                        id="sp-type"
+                        bind:value={$stockForm.type}
+                        class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded-lg text-sm text-white outline-none transition-colors"
+                    >
+                        {#each movementTypes as t}
+                            <option value={t.value}>{t.label}</option>
+                        {/each}
+                    </select>
+                    {#if $stockForm.errors.type}
+                        <p class="mt-1 text-xs text-red-400">{$stockForm.errors.type}</p>
+                    {/if}
+                </div>
+
+                <!-- Cantidad -->
+                <div>
+                    <label for="sp-qty" class="block text-sm font-medium text-slate-300 mb-1.5">
+                        Cantidad <span class="text-red-400">*</span>
+                        {#if $stockForm.type === 'adjustment'}
+                            <span class="text-xs text-amber-400 ml-1">(valor absoluto final)</span>
+                        {/if}
+                    </label>
+                    <input
+                        id="sp-qty"
+                        type="number"
+                        min="1"
+                        bind:value={$stockForm.quantity}
+                        class="w-full px-3.5 py-2.5 bg-slate-800 border rounded-lg text-sm text-white outline-none transition-colors
+                            {$stockForm.errors.quantity ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'}"
+                    />
+                    {#if $stockForm.errors.quantity}
+                        <p class="mt-1 text-xs text-red-400">{$stockForm.errors.quantity}</p>
+                    {/if}
+                    {#if $stockForm.quantity >= 1}
+                        <p class="mt-1 text-xs text-slate-400">
+                            Stock actual: <span class="font-mono text-white">{stockProduct.stock_quantity}</span>
+                            → <span class="font-mono font-semibold text-indigo-300">{stockPreview($stockForm.type, $stockForm.quantity, stockProduct.stock_quantity)}</span>
+                        </p>
+                    {/if}
+                </div>
+
+                <!-- Referencia y notas -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="sp-ref" class="block text-sm font-medium text-slate-300 mb-1.5">
+                            Referencia <span class="text-slate-500 text-xs">(opcional)</span>
+                        </label>
+                        <input
+                            id="sp-ref"
+                            type="text"
+                            bind:value={$stockForm.reference}
+                            placeholder="Ej: OC-0042"
+                            maxlength="100"
+                            class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label for="sp-notes" class="block text-sm font-medium text-slate-300 mb-1.5">
+                            Notas <span class="text-slate-500 text-xs">(opcional)</span>
+                        </label>
+                        <input
+                            id="sp-notes"
+                            type="text"
+                            bind:value={$stockForm.notes}
+                            placeholder="Observación"
+                            class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button
+                        type="submit"
+                        disabled={$stockForm.processing}
+                        class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                        {$stockForm.processing ? 'Registrando...' : 'Registrar movimiento'}
+                    </button>
+                    <button
+                        type="button"
+                        onclick={closeStockModal}
+                        class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-lg transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{/if}
 
 <!-- Delete modal -->
 {#if deleting}

@@ -44,6 +44,9 @@ class StockMovementController extends Controller
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
+            'products'  => Product::active()
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'sku', 'stock_quantity']),
         ]);
     }
 

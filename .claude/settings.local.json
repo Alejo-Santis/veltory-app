@@ -39,7 +39,14 @@
       "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:controller CategoryController --resource)",
       "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:request StoreCategoryRequest)",
       "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:request UpdateCategoryRequest)",
-      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan migrate:fresh --seed --force)"
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan migrate:fresh --seed --force)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration create_warehouses_table)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration create_warehouse_stock_table)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration create_transfers_table)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration create_transfer_items_table)",
+      "Bash(composer require spatie/laravel-permission)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan vendor:publish --provider=\"Spatie\\\\Permission\\\\PermissionServiceProvider\")",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan db:seed --class=RoleSeeder)"
     ]
   }
 }
