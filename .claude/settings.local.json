@@ -46,7 +46,30 @@
       "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration create_transfer_items_table)",
       "Bash(composer require spatie/laravel-permission)",
       "Bash($PHP /c/Users/User/Herd/veltory-app/artisan vendor:publish --provider=\"Spatie\\\\Permission\\\\PermissionServiceProvider\")",
-      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan db:seed --class=RoleSeeder)"
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan db:seed --class=RoleSeeder)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan make:migration add_warehouse_id_to_stock_movements_table)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan db:seed --class=UnitSeeder)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan db:seed --class=CategorySeeder)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list --path=categories)",
+      "Bash(\"$PHP\" /c/Users/User/Herd/veltory-app/artisan route:list --path=users)",
+      "Bash(\"$PHP\" /c/Users/User/Herd/veltory-app/artisan storage:link)",
+      "Bash(composer require maatwebsite/excel barryvdh/laravel-dompdf --no-interaction)",
+      "Bash(\"$PHP\" artisan vendor:publish --tag=activitylog-migrations --tag=activitylog-config)",
+      "Bash(composer require spatie/laravel-activitylog --no-interaction)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/.config/herd/bin/composer.phar require maatwebsite/excel barryvdh/laravel-dompdf)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/.config/herd/bin/composer.phar install)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan vendor:publish --provider=\"Spatie\\\\Activitylog\\\\ActivitylogServiceProvider\" --tag=\"activitylog-migrations\")",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan migrate)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan vendor:publish --provider=\"Spatie\\\\Activitylog\\\\ActivitylogServiceProvider\" --tag=\"activitylog-config\")",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan route:list --name=exports,activity)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan route:list)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan config:clear)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan route:clear)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan tinker --execute=\"echo \\\\App\\\\Models\\\\Unit::where\\(''abbreviation'',''pza''\\)->value\\(''id''\\);\")",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan db:seed --class=ProductSeeder)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan db:seed --class=ProductSeeder --verbose)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan tinker --execute=\"echo ''Products: '' . \\\\App\\\\Models\\\\Product::count\\(\\) . '', Images: '' . \\\\App\\\\Models\\\\ProductImage::count\\(\\);\")"
     ]
   }
 }

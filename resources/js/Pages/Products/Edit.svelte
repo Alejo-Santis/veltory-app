@@ -1,8 +1,35 @@
 <script>
-    import { useForm } from '@inertiajs/svelte';
+    import { router, useForm } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { product, units = [], suppliers = [], categories = [], statuses = [] } = $props();
+
+    // ── Imágenes ──────────────────────────────────────────────
+    const images = $derived(product.images ?? []);
+    let uploadInput;
+    let uploading = $state(false);
+
+    function handleImageUpload(e) {
+        const files = e.target.files;
+        if (!files?.length) return;
+        uploading = true;
+        const data = new FormData();
+        Array.from(files).forEach(f => data.append('images[]', f));
+        router.post(`/products/${product.uuid}/images`, data, {
+            forceFormData: true,
+            onSuccess: () => { uploading = false; uploadInput.value = ''; },
+            onError:   () => { uploading = false; },
+        });
+    }
+
+    function deleteImage(img) {
+        router.delete(`/products/${product.uuid}/images/${img.uuid}`);
+    }
+
+    function setCover(img) {
+        router.patch(`/products/${product.uuid}/images/${img.uuid}/cover`);
+    }
 
     const form = useForm({
         name:               product.name,
@@ -64,6 +91,7 @@
         </div>
 
         <div class="p-8">
+            <Breadcrumb items={[{ label: 'Productos', href: '/products' }, { label: product.name, href: `/products/${product.uuid}` }, { label: 'Editar' }]} />
             <form onsubmit={submit}>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -247,6 +275,75 @@
                             <textarea id="notes" bind:value={$form.notes} rows="3"
                                 class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors resize-none"
                             ></textarea>
+                        </div>
+
+                        <!-- Imágenes -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-sm font-semibold text-white">Imágenes del producto</h2>
+                                <label class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg cursor-pointer transition-colors {uploading ? 'opacity-60 pointer-events-none' : ''}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    {uploading ? 'Subiendo...' : 'Subir imágenes'}
+                                    <input
+                                        bind:this={uploadInput}
+                                        type="file"
+                                        multiple
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onchange={handleImageUpload}
+                                        class="hidden"
+                                    />
+                                </label>
+                            </div>
+
+                            {#if images.length === 0}
+                                <div class="border-2 border-dashed border-slate-700 rounded-lg py-10 text-center text-slate-500 text-sm">
+                                    Sin imágenes — sube la primera
+                                </div>
+                            {:else}
+                                <div class="grid grid-cols-3 gap-3">
+                                    {#each images as img}
+                                        <div class="relative group rounded-lg overflow-hidden border {img.is_cover ? 'border-indigo-500' : 'border-slate-700'}">
+                                            <img src={img.url} alt={img.alt_text} class="w-full aspect-square object-cover bg-slate-800" />
+
+                                            {#if img.is_cover}
+                                                <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-indigo-600 text-white text-[10px] font-semibold rounded">
+                                                    Portada
+                                                </div>
+                                            {/if}
+
+                                            <!-- Overlay de acciones -->
+                                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                {#if !img.is_cover}
+                                                    <button
+                                                        type="button"
+                                                        onclick={() => setCover(img)}
+                                                        title="Establecer como portada"
+                                                        class="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors"
+                                                    >
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z"/>
+                                                        </svg>
+                                                    </button>
+                                                {/if}
+                                                <button
+                                                    type="button"
+                                                    onclick={() => deleteImage(img)}
+                                                    title="Eliminar imagen"
+                                                    class="p-1.5 bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors"
+                                                >
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+
+                            <p class="text-xs text-slate-500">Formatos: jpg, jpeg, png, webp. Máximo 4 MB por imagen. La primera imagen subida será la portada.</p>
                         </div>
 
                     </div>

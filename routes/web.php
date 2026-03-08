@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\ProfileController;
@@ -31,32 +34,66 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('categories', CategoryController::class)->except(['show']);
-    Route::resource('products',   ProductController::class)->except(['show']);
-    Route::resource('suppliers',  SupplierController::class)->except(['show']);
-    Route::resource('units',      UnitController::class)->only(['index', 'store', 'update', 'destroy']);
-
-    Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
-    Route::post('/products/{product}/stock', [StockMovementController::class, 'store'])->name('products.stock.store');
-
-    // Perfil del usuario autenticado
+    // Perfil — cualquier usuario autenticado
     Route::get('/profile',          [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile',          [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
-    // Gestión de usuarios (solo admin)
-    Route::get('/users',                          [UserController::class, 'index'])->name('users.index');
-    Route::post('/users/{user}/roles',            [UserController::class, 'assignRole'])->name('users.roles.assign');
-    Route::delete('/users/{user}/roles/{role}',   [UserController::class, 'removeRole'])->name('users.roles.remove');
+    // Lectura — viewer, manager y admin
+    Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
+    Route::resource('categories', CategoryController::class)->only(['index']);
+    Route::resource('products',   ProductController::class)->only(['index']);
+    Route::resource('suppliers',  SupplierController::class)->only(['index']);
+    Route::resource('units',      UnitController::class)->only(['index']);
+    Route::resource('warehouses', WarehouseController::class)->only(['index']);
+    // 'show' registrado después de 'create' (en el grupo de escritura) para evitar que {transfer} capture "create"
+    Route::resource('transfers',  TransferController::class)->only(['index']);
 
-    // Bodegas
-    Route::resource('warehouses', WarehouseController::class)->except(['show']);
+    // Escritura — solo manager y admin
+    Route::middleware('role:admin|manager')->group(function () {
+        Route::resource('categories', CategoryController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('products',   ProductController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('suppliers',  SupplierController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('units',      UnitController::class)->only(['store', 'update', 'destroy']);
+        Route::resource('warehouses', WarehouseController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+        Route::resource('transfers',  TransferController::class)->only(['create', 'store']);
 
-    // Traslados
-    Route::resource('transfers', TransferController::class)->only(['index', 'create', 'store', 'show']);
-    Route::patch('transfers/{transfer}/request',  [TransferController::class, 'request'])->name('transfers.request');
-    Route::patch('transfers/{transfer}/approve',  [TransferController::class, 'approve'])->name('transfers.approve');
-    Route::patch('transfers/{transfer}/ship',     [TransferController::class, 'ship'])->name('transfers.ship');
-    Route::patch('transfers/{transfer}/complete', [TransferController::class, 'complete'])->name('transfers.complete');
-    Route::patch('transfers/{transfer}/cancel',   [TransferController::class, 'cancel'])->name('transfers.cancel');
+        Route::post('/products/{product}/stock', [StockMovementController::class, 'store'])->name('products.stock.store');
+
+        // Imágenes de producto
+        Route::post('/products/{product}/images',                      [ProductImageController::class, 'store'])->name('products.images.store');
+        Route::delete('/products/{product}/images/{image}',            [ProductImageController::class, 'destroy'])->name('products.images.destroy');
+        Route::patch('/products/{product}/images/{image}/cover',       [ProductImageController::class, 'setCover'])->name('products.images.cover');
+
+        Route::patch('transfers/{transfer}/request',  [TransferController::class, 'request'])->name('transfers.request');
+        Route::patch('transfers/{transfer}/approve',  [TransferController::class, 'approve'])->name('transfers.approve');
+        Route::patch('transfers/{transfer}/ship',     [TransferController::class, 'ship'])->name('transfers.ship');
+        Route::patch('transfers/{transfer}/complete', [TransferController::class, 'complete'])->name('transfers.complete');
+        Route::patch('transfers/{transfer}/cancel',   [TransferController::class, 'cancel'])->name('transfers.cancel');
+    });
+
+    // Show routes — registradas DESPUÉS de /*/create para que no las intercepten
+    Route::resource('products',   ProductController::class)->only(['show']);
+    Route::resource('suppliers',  SupplierController::class)->only(['show']);
+    Route::resource('warehouses', WarehouseController::class)->only(['show']);
+    Route::resource('transfers',  TransferController::class)->only(['show']);
+
+    // Exportaciones — manager y admin
+    Route::middleware('role:admin|manager')->group(function () {
+        Route::get('/exports/products/excel',    [ExportController::class, 'productsExcel'])->name('exports.products.excel');
+        Route::get('/exports/products/pdf',      [ExportController::class, 'productsPdf'])->name('exports.products.pdf');
+        Route::get('/exports/movements/excel',   [ExportController::class, 'movementsExcel'])->name('exports.movements.excel');
+        Route::get('/exports/movements/pdf',     [ExportController::class, 'movementsPdf'])->name('exports.movements.pdf');
+    });
+
+    // Gestión de usuarios y audit log — solo admin
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/users',                        [UserController::class, 'index'])->name('users.index');
+        Route::post('/users',                       [UserController::class, 'store'])->name('users.store');
+        Route::delete('/users/{user}',              [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/roles',          [UserController::class, 'assignRole'])->name('users.roles.assign');
+        Route::delete('/users/{user}/roles/{role}', [UserController::class, 'removeRole'])->name('users.roles.remove');
+
+        Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
+    });
 });

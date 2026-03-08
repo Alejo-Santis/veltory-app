@@ -43,8 +43,9 @@ class HandleInertiaRequests extends Middleware
                     'uuid'  => $request->user()->uuid,
                     'name'  => $request->user()->name,
                     'email' => $request->user()->email,
-                    'roles' => $request->user()->getRoleNames(),
-                    'is_admin' => $request->user()->hasRole('admin'),
+                    'roles'     => $request->user()->getRoleNames(),
+                    'is_admin'  => $request->user()->hasRole('admin'),
+                    'can_write' => $request->user()->hasAnyRole(['admin', 'manager']),
                 ] : null,
             ],
             'flash' => [

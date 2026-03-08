@@ -10,7 +10,9 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\Unit;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -18,7 +20,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['unit', 'supplier', 'categories'])
+        $query = Product::with(['unit', 'supplier', 'categories', 'coverImage'])
             ->withCount('categories');
 
         if ($search = $request->input('search')) {
@@ -39,6 +41,14 @@ class ProductController extends Controller
 
         $products = $query->orderBy('name')->paginate(20)->withQueryString();
 
+        // Añadir URL pública de imagen de portada
+        $products->getCollection()->transform(function ($product) {
+            if ($product->coverImage) {
+                $product->coverImage->url = Storage::disk('public')->url($product->coverImage->path);
+            }
+            return $product;
+        });
+
         return Inertia::render('Products/Index', [
             'products' => $products,
             'filters'  => $request->only(['search', 'status', 'low_stock']),
@@ -50,6 +60,9 @@ class ProductController extends Controller
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
+            'warehouses'     => Warehouse::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
         ]);
     }
 
@@ -97,17 +110,58 @@ class ProductController extends Controller
             $product->categories()->sync($categories);
         }
 
-        return redirect('/products')->with('success', "Producto \"{$product->name}\" creado correctamente.");
+        return redirect("/products/{$product->uuid}/edit")->with('success', "Producto \"{$product->name}\" creado. Ahora puedes agregar imágenes.");
+    }
+
+    public function show(Product $product)
+    {
+        $product->load([
+            'unit', 'supplier', 'categories',
+            'images' => fn ($q) => $q->orderBy('sort_order'),
+            'createdBy', 'updatedBy',
+        ]);
+
+        $images = $product->images->map(fn ($img) => [
+            'id'       => $img->id,
+            'uuid'     => $img->uuid,
+            'url'      => Storage::disk('public')->url($img->path),
+            'alt_text' => $img->alt_text,
+            'is_cover' => $img->is_cover,
+        ]);
+
+        $recentMovements = $product->stockMovements()
+            ->with(['user', 'warehouse'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return Inertia::render('Products/Show', [
+            'product'          => array_merge($product->toArray(), [
+                'status_label'  => $product->status->label(),
+                'status_value'  => $product->status->value,
+                'images'        => $images,
+            ]),
+            'recentMovements'  => $recentMovements,
+        ]);
     }
 
     public function edit(Product $product)
     {
-        $product->load('categories');
+        $product->load(['categories', 'images' => fn ($q) => $q->orderBy('sort_order')]);
+
+        $images = $product->images->map(fn ($img) => [
+            'id'       => $img->id,
+            'uuid'     => $img->uuid,
+            'url'      => Storage::disk('public')->url($img->path),
+            'alt_text' => $img->alt_text,
+            'is_cover' => $img->is_cover,
+        ]);
 
         return Inertia::render('Products/Edit', [
             'product'    => array_merge($product->toArray(), [
                 'category_ids' => $product->categories->pluck('id'),
                 'status'       => $product->status->value,
+                'images'       => $images,
             ]),
             'units'      => Unit::orderBy('name')->get(['id', 'name', 'abbreviation']),
             'suppliers'  => Supplier::where('is_active', true)->orderBy('name')->get(['id', 'name']),

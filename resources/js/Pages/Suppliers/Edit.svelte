@@ -1,6 +1,7 @@
 <script>
     import { useForm } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { supplier } = $props();
 
@@ -37,6 +38,7 @@
         </div>
 
         <div class="p-8 max-w-2xl">
+            <Breadcrumb items={[{ label: 'Proveedores', href: '/suppliers' }, { label: supplier.name, href: `/suppliers/${supplier.uuid}` }, { label: 'Editar' }]} />
             <form onsubmit={submit} class="space-y-6">
 
                 <!-- Datos principales -->

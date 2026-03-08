@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
@@ -31,6 +33,37 @@ class UserController extends Controller
             'filters' => $request->only(['search', 'role']),
             'roles'   => Role::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', Password::min(8)->mixedCase()->numbers()],
+            'role'     => ['required', 'exists:roles,name'],
+        ]);
+
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        $user->assignRole($data['role']);
+
+        return back()->with('success', "Usuario {$user->name} creado correctamente.");
+    }
+
+    public function destroy(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'No puedes eliminar tu propia cuenta.');
+        }
+
+        $user->delete();
+
+        return back()->with('success', "Usuario {$user->name} eliminado.");
     }
 
     public function assignRole(Request $request, User $user)

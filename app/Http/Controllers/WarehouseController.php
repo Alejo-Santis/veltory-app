@@ -40,6 +40,33 @@ class WarehouseController extends Controller
         ]);
     }
 
+    public function show(Warehouse $warehouse)
+    {
+        $stock = $warehouse->stock()
+            ->with(['product' => fn ($q) => $q->with(['unit', 'coverImage'])])
+            ->orderByDesc('quantity')
+            ->get();
+
+        $stock->transform(function ($s) {
+            if ($s->product?->coverImage) {
+                $s->product->coverImage->url = \Illuminate\Support\Facades\Storage::disk('public')->url($s->product->coverImage->path);
+            }
+            return $s;
+        });
+
+        $recentMovements = \App\Models\StockMovement::with(['product', 'user'])
+            ->where('warehouse_id', $warehouse->id)
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return Inertia::render('Warehouses/Show', [
+            'warehouse'        => $warehouse,
+            'stock'            => $stock,
+            'recentMovements'  => $recentMovements,
+        ]);
+    }
+
     public function create()
     {
         return Inertia::render('Warehouses/Create', [

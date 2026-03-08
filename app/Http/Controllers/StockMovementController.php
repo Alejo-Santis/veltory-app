@@ -6,14 +6,17 @@ use App\Enums\TypeStockMovement;
 use App\Http\Requests\StoreStockMovementRequest;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class StockMovementController extends Controller
 {
     public function index(Request $request)
     {
-        $query = StockMovement::with(['product', 'user'])
+        $query = StockMovement::with(['product', 'user', 'warehouse'])
             ->latest();
 
         if ($search = $request->input('search')) {
@@ -38,54 +41,77 @@ class StockMovementController extends Controller
         $movements = $query->paginate(30)->withQueryString();
 
         return Inertia::render('StockMovements/Index', [
-            'movements' => $movements,
-            'filters'   => $request->only(['search', 'type', 'from', 'to']),
-            'types'     => collect(TypeStockMovement::cases())->map(fn ($t) => [
+            'movements'  => $movements,
+            'filters'    => $request->only(['search', 'type', 'from', 'to']),
+            'types'      => collect(TypeStockMovement::cases())->map(fn ($t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
             ]),
-            'products'  => Product::active()
+            'products'   => Product::active()
                 ->orderBy('name')
                 ->get(['id', 'uuid', 'name', 'sku', 'stock_quantity']),
+            'warehouses' => Warehouse::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
         ]);
     }
 
     public function store(StoreStockMovementRequest $request, Product $product)
     {
-        $data     = $request->validated();
-        $type     = TypeStockMovement::from($data['type']);
-        $qty      = (int) $data['quantity'];
-        $before   = $product->stock_quantity;
+        $data        = $request->validated();
+        $type        = TypeStockMovement::from($data['type']);
+        $qty         = (int) $data['quantity'];
+        $warehouseId = $data['warehouse_id'] ?? null;
+        $before      = $product->stock_quantity;
 
-        // Calcular nuevo stock según tipo
+        // Calcular nuevo stock global según tipo
         $after = match ($type) {
             TypeStockMovement::IN         => $before + $qty,
             TypeStockMovement::OUT        => max(0, $before - $qty),
             TypeStockMovement::RETURN     => $before + $qty,
             TypeStockMovement::LOSS       => max(0, $before - $qty),
-            TypeStockMovement::ADJUSTMENT => $qty,   // quantity = valor absoluto final
+            TypeStockMovement::ADJUSTMENT => $qty,
         };
 
-        // Ajuste: quantity negativa si es salida
         $storedQty = match ($type) {
             TypeStockMovement::IN, TypeStockMovement::RETURN   => $qty,
             TypeStockMovement::OUT, TypeStockMovement::LOSS    => -$qty,
             TypeStockMovement::ADJUSTMENT                      => $after - $before,
         };
 
-        StockMovement::create([
-            'product_id'      => $product->id,
-            'user_id'         => auth()->id(),
-            'type'            => $type,
-            'quantity'        => $storedQty,
-            'quantity_before' => $before,
-            'quantity_after'  => $after,
-            'unit_cost'       => $data['unit_cost'] ?? null,
-            'reference'       => $data['reference'] ?? null,
-            'notes'           => $data['notes'] ?? null,
-        ]);
+        DB::transaction(function () use ($product, $type, $storedQty, $before, $after, $warehouseId, $data) {
+            StockMovement::create([
+                'product_id'      => $product->id,
+                'user_id'         => auth()->id(),
+                'warehouse_id'    => $warehouseId,
+                'type'            => $type,
+                'quantity'        => $storedQty,
+                'quantity_before' => $before,
+                'quantity_after'  => $after,
+                'unit_cost'       => $data['unit_cost'] ?? null,
+                'reference'       => $data['reference'] ?? null,
+                'notes'           => $data['notes'] ?? null,
+            ]);
 
-        $product->update(['stock_quantity' => $after, 'updated_by' => auth()->id()]);
+            $product->update(['stock_quantity' => $after, 'updated_by' => auth()->id()]);
+
+            // Sincronizar warehouse_stock si se indicó una bodega
+            if ($warehouseId) {
+                $stock = WarehouseStock::firstOrNew([
+                    'warehouse_id' => $warehouseId,
+                    'product_id'   => $product->id,
+                ]);
+
+                $currentQty = $stock->quantity ?? 0;
+
+                $stock->quantity   = match ($type) {
+                    TypeStockMovement::ADJUSTMENT => $after,
+                    default                       => max(0, $currentQty + $storedQty),
+                };
+                $stock->updated_at = now();
+                $stock->save();
+            }
+        });
 
         return back()->with('success', "Movimiento registrado. Stock actualizado: {$before} → {$after}.");
     }

@@ -43,7 +43,8 @@
 
     // Sección de administración — solo visible para admin
     const adminNav = [
-        { name: 'Usuarios',     href: '/users',          icon: 'users' },
+        { name: 'Usuarios',    href: '/users',          icon: 'users' },
+        { name: 'Auditoría',   href: '/activity-log',   icon: 'audit' },
     ];
 
     const isAdmin = $derived($page.props.auth?.user?.is_admin ?? false);
@@ -52,6 +53,9 @@
         if (href === '/') return $page.url === '/';
         return $page.url.startsWith(href);
     }
+
+    const allNav = $derived([...navigation, ...(isAdmin ? adminNav : [])]);
+    const currentPageTitle = $derived(allNav.find(item => isActive(item.href))?.name ?? '');
 </script>
 
 <div class="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
@@ -61,19 +65,18 @@
             {collapsed ? 'w-16' : 'w-64'}"
     >
         <!-- Logo + toggle -->
-        <div class="flex items-center h-16 border-b border-slate-800 {collapsed ? 'justify-center px-0' : 'px-4 gap-2'}">
+        <div class="flex items-center h-16 border-b border-slate-800 {collapsed ? 'flex-col justify-center gap-1 px-0' : 'px-4 gap-2'}">
             {#if !collapsed}
                 <div class="flex-1 min-w-0">
                     <VeltoryLogo size={26} showWordmark={true} />
                 </div>
             {:else}
-                <VeltoryLogo size={26} showWordmark={false} />
+                <VeltoryLogo size={22} showWordmark={false} />
             {/if}
             <button
                 onclick={toggleSidebar}
                 title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-                class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors
-                    {collapsed ? 'absolute left-1/2 -translate-x-1/2 mt-9' : ''}"
+                class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
             >
                 {#if collapsed}
                     <!-- Chevron right (expand) -->
@@ -119,6 +122,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                         {:else if item.icon === 'users'}
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        {:else if item.icon === 'audit'}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                         {/if}
                     </svg>
                     {#if !collapsed}
@@ -131,15 +136,15 @@
         <!-- User -->
         <div class="px-2 py-3 border-t border-slate-800">
             {#if !collapsed}
-                <div class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                <a href="/profile" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors group">
                     <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-semibold text-white flex-shrink-0">
                         {$page.props.auth?.user?.name?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="text-sm font-medium text-slate-200 truncate">{$page.props.auth?.user?.name ?? 'Usuario'}</p>
+                        <p class="text-sm font-medium text-slate-200 truncate group-hover:text-white">{$page.props.auth?.user?.name ?? 'Usuario'}</p>
                         <p class="text-xs text-slate-500 truncate">{$page.props.auth?.user?.email ?? ''}</p>
                     </div>
-                </div>
+                </a>
                 <form onsubmit={logout} class="mt-1">
                     <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,10 +156,10 @@
             {:else}
                 <!-- Collapsed: avatar + logout icon -->
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-semibold text-white"
-                        title={$page.props.auth?.user?.name ?? 'Usuario'}>
+                    <a href="/profile" title={$page.props.auth?.user?.name ?? 'Mi perfil'}
+                        class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-sm font-semibold text-white hover:bg-indigo-500 transition-colors">
                         {$page.props.auth?.user?.name?.[0]?.toUpperCase() ?? 'U'}
-                    </div>
+                    </a>
                     <form onsubmit={logout}>
                         <button type="submit" title="Cerrar sesión"
                             class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-colors">
@@ -170,6 +175,23 @@
 
     <!-- Main content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <!-- Top bar -->
+        <header class="flex-shrink-0 flex items-center justify-between h-14 px-6 border-b border-slate-800 bg-slate-900/40">
+            <span class="text-sm font-semibold text-slate-200 tracking-wide">
+                {currentPageTitle}
+            </span>
+            <a
+                href="/profile"
+                title="Mi perfil y configuración"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors text-sm"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="hidden sm:inline">{$page.props.auth?.user?.name ?? 'Mi perfil'}</span>
+            </a>
+        </header>
         {@render children()}
     </div>
 </div>

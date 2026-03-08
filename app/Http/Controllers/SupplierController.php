@@ -34,6 +34,22 @@ class SupplierController extends Controller
         ]);
     }
 
+    public function show(Supplier $supplier)
+    {
+        $supplier->load(['products' => fn ($q) => $q->with(['unit', 'coverImage'])->latest()->limit(20)]);
+
+        $supplier->products->transform(function ($product) {
+            if ($product->coverImage) {
+                $product->coverImage->url = \Illuminate\Support\Facades\Storage::disk('public')->url($product->coverImage->path);
+            }
+            return $product;
+        });
+
+        return Inertia::render('Suppliers/Show', [
+            'supplier' => $supplier,
+        ]);
+    }
+
     public function create()
     {
         return Inertia::render('Suppliers/Create');

@@ -12,7 +12,7 @@ class StockMovement extends Model
     use HasUuid;
 
     protected $fillable = [
-        'product_id', 'user_id', 'type', 'quantity',
+        'product_id', 'user_id', 'warehouse_id', 'type', 'quantity',
         'quantity_before', 'quantity_after', 'unit_cost', 'reference', 'notes',
     ];
 
@@ -29,5 +29,10 @@ class StockMovement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 }

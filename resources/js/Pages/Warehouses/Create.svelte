@@ -1,6 +1,7 @@
 <script>
     import { useForm } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { types = [] } = $props();
 
@@ -39,6 +40,7 @@
         </div>
 
         <div class="px-8 py-6 max-w-2xl">
+            <Breadcrumb items={[{ label: 'Bodegas', href: '/warehouses' }, { label: 'Nueva bodega' }]} />
             <form onsubmit={submit} class="space-y-5">
 
                 <div class="grid grid-cols-2 gap-4">
