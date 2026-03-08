@@ -89,6 +89,7 @@ class ReportController extends Controller
                 'productos'     => $totalProductos,
                 'margen'        => round($margenTotal, 1),
             ],
+            'canWrite' => $request->user()->hasAnyRole(['admin', 'manager']),
         ]);
     }
 }

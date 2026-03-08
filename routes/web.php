@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/exports/products/pdf',      [ExportController::class, 'productsPdf'])->name('exports.products.pdf');
         Route::get('/exports/movements/excel',   [ExportController::class, 'movementsExcel'])->name('exports.movements.excel');
         Route::get('/exports/movements/pdf',     [ExportController::class, 'movementsPdf'])->name('exports.movements.pdf');
+        Route::get('/exports/reports/pdf',       [ExportController::class, 'reportPdf'])->name('exports.reports.pdf');
     });
 
     // Gestión de usuarios y audit log — solo admin

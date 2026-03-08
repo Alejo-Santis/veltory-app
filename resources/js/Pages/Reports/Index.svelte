@@ -2,7 +2,7 @@
     import { router } from '@inertiajs/svelte';
     import AppLayout from '@/Layouts/AppLayout.svelte';
 
-    let { period, rotation, sinMovimiento, valorizacion, totals } = $props();
+    let { period, rotation, sinMovimiento, valorizacion, totals, canWrite } = $props();
 
     function formatCurrency(v) {
         if (v == null) return '—';
@@ -33,19 +33,34 @@
                 <h1 class="text-xl font-semibold text-white">Reportes</h1>
                 <p class="text-sm text-slate-400 mt-0.5">Rotación de stock y valorización de inventario</p>
             </div>
-            <!-- Selector de período -->
-            <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1">
-                {#each periods as p}
-                    <button
-                        onclick={() => setPeriod(p.value)}
-                        class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors
-                            {period === p.value
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-slate-400 hover:text-white'}"
+            <div class="flex items-center gap-3">
+                {#if canWrite}
+                    <a
+                        href="/exports/reports/pdf?period={period}"
+                        target="_blank"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
                     >
-                        {p.label}
-                    </button>
-                {/each}
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Exportar PDF
+                    </a>
+                {/if}
+                <!-- Selector de período -->
+                <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1">
+                    {#each periods as p}
+                        <button
+                            onclick={() => setPeriod(p.value)}
+                            class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors
+                                {period === p.value
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-slate-400 hover:text-white'}"
+                        >
+                            {p.label}
+                        </button>
+                    {/each}
+                </div>
             </div>
         </div>
 
