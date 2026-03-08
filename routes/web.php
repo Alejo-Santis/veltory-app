@@ -6,6 +6,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\SupplierController;
@@ -38,6 +39,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile',          [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile',          [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    // Búsqueda global
+    Route::get('/search', SearchController::class)->name('search');
 
     // Lectura — viewer, manager y admin
     Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
@@ -73,6 +77,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Show routes — registradas DESPUÉS de /*/create para que no las intercepten
+    Route::resource('categories', CategoryController::class)->only(['show']);
     Route::resource('products',   ProductController::class)->only(['show']);
     Route::resource('suppliers',  SupplierController::class)->only(['show']);
     Route::resource('warehouses', WarehouseController::class)->only(['show']);
@@ -90,6 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/users',                        [UserController::class, 'index'])->name('users.index');
         Route::post('/users',                       [UserController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}',                 [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}',              [UserController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{user}/roles',          [UserController::class, 'assignRole'])->name('users.roles.assign');
         Route::delete('/users/{user}/roles/{role}', [UserController::class, 'removeRole'])->name('users.roles.remove');

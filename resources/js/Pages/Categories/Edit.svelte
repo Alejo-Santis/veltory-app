@@ -1,6 +1,7 @@
 <script>
     import { useForm } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { category, parents = [] } = $props();
 
@@ -36,6 +37,9 @@
         </div>
 
         <div class="p-8 max-w-2xl">
+            <div class="mb-6">
+                <Breadcrumb items={[{ label: 'Categorías', href: '/categories' }, { label: category.name, href: `/categories/${category.uuid}` }, { label: 'Editar' }]} />
+            </div>
             <form onsubmit={submit} class="space-y-6">
 
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">

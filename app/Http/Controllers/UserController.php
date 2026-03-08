@@ -55,6 +55,26 @@ class UserController extends Controller
         return back()->with('success', "Usuario {$user->name} creado correctamente.");
     }
 
+    public function update(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', "unique:users,email,{$user->id}"],
+            'password' => ['nullable', Password::min(8)->mixedCase()->numbers()],
+        ]);
+
+        $user->name  = $data['name'];
+        $user->email = $data['email'];
+
+        if (!empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
+        }
+
+        $user->save();
+
+        return back()->with('success', "Usuario {$user->name} actualizado.");
+    }
+
     public function destroy(User $user)
     {
         if ($user->id === auth()->id()) {

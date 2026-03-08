@@ -9,9 +9,11 @@
     let assigning   = $state(null);
     let deleting    = $state(null);
     let showCreate  = $state(false);
+    let editing     = $state(null);
 
     const assignForm = useForm({ role: '' });
     const createForm = useForm({ name: '', email: '', password: '', role: 'viewer' });
+    const editForm   = useForm({ name: '', email: '', password: '' });
 
     let searchTimer;
     function onSearchInput() {
@@ -59,6 +61,25 @@
     function submitCreate(e) {
         e.preventDefault();
         $createForm.post('/users', { onSuccess: closeCreate });
+    }
+
+    function openEdit(user) {
+        editing = user;
+        $editForm.name     = user.name;
+        $editForm.email    = user.email;
+        $editForm.password = '';
+        $editForm.clearErrors();
+    }
+
+    function closeEdit() {
+        editing = null;
+        $editForm.reset();
+        $editForm.clearErrors();
+    }
+
+    function submitEdit(e) {
+        e.preventDefault();
+        $editForm.put(`/users/${editing.id}`, { onSuccess: closeEdit });
     }
 
     function confirmDelete(user) {
@@ -184,6 +205,15 @@
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-1 justify-end">
                                             <button
+                                                onclick={() => openEdit(user)}
+                                                class="p-1.5 text-slate-500 hover:text-white hover:bg-slate-700 rounded-md transition-colors"
+                                                title="Editar usuario"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                            <button
                                                 onclick={() => openAssign(user)}
                                                 class="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-slate-700 rounded-md transition-colors"
                                                 title="Cambiar rol"
@@ -308,6 +338,77 @@
                         {$createForm.processing ? 'Creando...' : 'Crear usuario'}
                     </button>
                     <button type="button" onclick={closeCreate}
+                        class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-lg transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{/if}
+
+<!-- Modal: Editar usuario -->
+{#if editing}
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick={closeEdit} role="presentation"></div>
+        <div class="relative bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div class="mb-5">
+                <h3 class="text-base font-semibold text-white">Editar usuario</h3>
+                <p class="text-sm text-slate-400 mt-0.5">Modifica los datos de la cuenta.</p>
+            </div>
+
+            <form onsubmit={submitEdit} class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Nombre <span class="text-red-400">*</span></label>
+                    <input
+                        type="text"
+                        bind:value={$editForm.name}
+                        placeholder="Nombre completo"
+                        class="w-full px-3.5 py-2.5 bg-slate-800 border rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors
+                            {$editForm.errors.name ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'}"
+                    />
+                    {#if $editForm.errors.name}
+                        <p class="mt-1 text-xs text-red-400">{$editForm.errors.name}</p>
+                    {/if}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Correo electrónico <span class="text-red-400">*</span></label>
+                    <input
+                        type="email"
+                        bind:value={$editForm.email}
+                        placeholder="correo@ejemplo.com"
+                        class="w-full px-3.5 py-2.5 bg-slate-800 border rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors
+                            {$editForm.errors.email ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'}"
+                    />
+                    {#if $editForm.errors.email}
+                        <p class="mt-1 text-xs text-red-400">{$editForm.errors.email}</p>
+                    {/if}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">
+                        Nueva contraseña
+                        <span class="text-slate-500 font-normal text-xs">(dejar vacío para no cambiarla)</span>
+                    </label>
+                    <input
+                        type="password"
+                        bind:value={$editForm.password}
+                        placeholder="Mínimo 8 caracteres"
+                        class="w-full px-3.5 py-2.5 bg-slate-800 border rounded-lg text-sm text-white placeholder-slate-500 outline-none transition-colors
+                            {$editForm.errors.password ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'}"
+                    />
+                    {#if $editForm.errors.password}
+                        <p class="mt-1 text-xs text-red-400">{$editForm.errors.password}</p>
+                    {/if}
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button type="submit" disabled={$editForm.processing}
+                        class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors">
+                        {$editForm.processing ? 'Guardando...' : 'Guardar cambios'}
+                    </button>
+                    <button type="button" onclick={closeEdit}
                         class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-lg transition-colors">
                         Cancelar
                     </button>

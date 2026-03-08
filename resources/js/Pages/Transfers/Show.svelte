@@ -1,6 +1,7 @@
 <script>
     import { useForm, router } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { transfer, statuses = [] } = $props();
 
@@ -134,6 +135,8 @@
         </div>
 
         <div class="px-8 py-6 space-y-6 max-w-4xl">
+
+            <Breadcrumb items={[{ label: 'Traslados', href: '/transfers' }, { label: transfer.reference ?? 'Detalle' }]} />
 
             <!-- Info general -->
             <div class="grid grid-cols-2 gap-6">

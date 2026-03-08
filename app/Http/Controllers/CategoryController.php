@@ -24,6 +24,26 @@ class CategoryController extends Controller
         return Inertia::render('Categories/Index', compact('categories'));
     }
 
+    public function show(Category $category): Response
+    {
+        $category->load(['parent', 'children']);
+
+        $products = $category->products()
+            ->with(['unit', 'coverImage'])
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->paginate(20);
+
+        $products->getCollection()->transform(function ($p) {
+            if ($p->coverImage) {
+                $p->coverImage->url = \Illuminate\Support\Facades\Storage::disk('public')->url($p->coverImage->path);
+            }
+            return $p;
+        });
+
+        return Inertia::render('Categories/Show', compact('category', 'products'));
+    }
+
     public function create(): Response
     {
         $parents = Category::whereNull('parent_id')

@@ -1,1 +1,1 @@
-necesitamos poner el mismo logo que pusiste en la aplicacion en el favicon del tab de la pestana del navegador cunado termines me ayudas con eso por favor gracias. y se me ocurrio poner un modulo adicional ponlo en el documento para realizar traslados entre sucursales o bodegas no se que modelo tomar mejor acepto tu recomendacion entonces serian dos modelos nuevos traslados y bodegas/sucursales (o hacer estas dos independientes) acepto tu sugerencia.
+y por ultimo una sola cosa mas que me gustaria ponerle es un buscador global es posible con la combinacion de ctrl + K

@@ -69,7 +69,8 @@
       "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan db:seed --class=ProductSeeder)",
       "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan db:seed --class=ProductSeeder --verbose)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan tinker --execute=\"echo ''Products: '' . \\\\App\\\\Models\\\\Product::count\\(\\) . '', Images: '' . \\\\App\\\\Models\\\\ProductImage::count\\(\\);\")"
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan tinker --execute=\"echo ''Products: '' . \\\\App\\\\Models\\\\Product::count\\(\\) . '', Images: '' . \\\\App\\\\Models\\\\ProductImage::count\\(\\);\")",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list --name=search)"
     ]
   }
 }

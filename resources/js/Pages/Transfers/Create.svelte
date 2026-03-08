@@ -1,6 +1,7 @@
 <script>
     import { useForm } from '@inertiajs/svelte';
     import AppLayout from '../../Layouts/AppLayout.svelte';
+    import Breadcrumb from '@/Components/Breadcrumb.svelte';
 
     let { warehouses = [], products = [] } = $props();
 
@@ -44,6 +45,9 @@
         </div>
 
         <div class="px-8 py-6 max-w-3xl">
+            <div class="mb-6">
+                <Breadcrumb items={[{ label: 'Traslados', href: '/transfers' }, { label: 'Nuevo traslado' }]} />
+            </div>
             <form onsubmit={submit} class="space-y-6">
 
                 <!-- Bodegas -->
