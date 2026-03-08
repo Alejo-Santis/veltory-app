@@ -6,8 +6,10 @@ use App\Enums\TransferStatus;
 use App\Http\Requests\StoreTransferRequest;
 use App\Models\Product;
 use App\Models\Transfer;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Notifications\TransferActualizadoNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -118,6 +120,9 @@ class TransferController extends Controller
             'requested_at' => now(),
         ]);
 
+        $transfer->load(['fromWarehouse', 'toWarehouse']);
+        User::role('admin')->each(fn ($u) => $u->notify(new TransferActualizadoNotification($transfer, 'solicitado')));
+
         return back()->with('success', 'Traslado enviado para aprobación.');
     }
 
@@ -130,6 +135,9 @@ class TransferController extends Controller
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
+
+        $transfer->load(['fromWarehouse', 'toWarehouse']);
+        User::role(['admin', 'manager'])->each(fn ($u) => $u->notify(new TransferActualizadoNotification($transfer, 'aprobado')));
 
         return back()->with('success', 'Traslado aprobado.');
     }
@@ -163,6 +171,9 @@ class TransferController extends Controller
                 'shipped_at' => now(),
             ]);
         });
+
+        $transfer->load(['fromWarehouse', 'toWarehouse']);
+        User::role(['admin', 'manager'])->each(fn ($u) => $u->notify(new TransferActualizadoNotification($transfer, 'despachado')));
 
         return back()->with('success', 'Traslado despachado. Stock de bodega origen actualizado.');
     }
@@ -200,6 +211,9 @@ class TransferController extends Controller
                 'completed_at' => now(),
             ]);
         });
+
+        $transfer->load(['fromWarehouse', 'toWarehouse']);
+        User::role(['admin', 'manager'])->each(fn ($u) => $u->notify(new TransferActualizadoNotification($transfer, 'completado')));
 
         return back()->with('success', 'Traslado completado. Stock de bodega destino actualizado.');
     }

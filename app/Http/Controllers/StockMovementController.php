@@ -6,8 +6,10 @@ use App\Enums\TypeStockMovement;
 use App\Http\Requests\StoreStockMovementRequest;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Notifications\StockBajoNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -112,6 +114,15 @@ class StockMovementController extends Controller
                 $stock->save();
             }
         });
+
+        // Notificar a admins si el stock cae a nivel bajo o sin stock
+        $product->refresh();
+        if ($product->min_stock > 0 && $product->stock_quantity <= $product->min_stock) {
+            $admins = User::role(['admin', 'manager'])->get();
+            foreach ($admins as $admin) {
+                $admin->notify(new StockBajoNotification($product));
+            }
+        }
 
         return back()->with('success', "Movimiento registrado. Stock actualizado: {$before} → {$after}.");
     }

@@ -6,6 +6,9 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
@@ -43,15 +46,26 @@ Route::middleware('auth')->group(function () {
     // Búsqueda global
     Route::get('/search', SearchController::class)->name('search');
 
+    // Notificaciones
+    Route::get('/notifications',            [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all',  [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+    // Reportes
+    Route::get('/reports', ReportController::class)->name('reports.index');
+
     // Lectura — viewer, manager y admin
     Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
-    Route::resource('categories', CategoryController::class)->only(['index']);
-    Route::resource('products',   ProductController::class)->only(['index']);
-    Route::resource('suppliers',  SupplierController::class)->only(['index']);
-    Route::resource('units',      UnitController::class)->only(['index']);
-    Route::resource('warehouses', WarehouseController::class)->only(['index']);
-    // 'show' registrado después de 'create' (en el grupo de escritura) para evitar que {transfer} capture "create"
-    Route::resource('transfers',  TransferController::class)->only(['index']);
+    Route::resource('categories',      CategoryController::class)->only(['index']);
+    Route::resource('products',        ProductController::class)->only(['index']);
+    Route::resource('suppliers',       SupplierController::class)->only(['index']);
+    Route::resource('units',           UnitController::class)->only(['index']);
+    Route::resource('warehouses',      WarehouseController::class)->only(['index']);
+    // 'show' registrado después de 'create' (en el grupo de escritura) para evitar que {transfer/purchase-order} capture "create"
+    Route::resource('transfers',       TransferController::class)->only(['index']);
+    Route::resource('purchase-orders', PurchaseOrderController::class)
+        ->only(['index'])
+        ->parameters(['purchase-orders' => 'purchaseOrder']);
 
     // Escritura — solo manager y admin
     Route::middleware('role:admin|manager')->group(function () {
@@ -76,12 +90,27 @@ Route::middleware('auth')->group(function () {
         Route::patch('transfers/{transfer}/cancel',   [TransferController::class, 'cancel'])->name('transfers.cancel');
     });
 
+    // Órdenes de compra — escritura: manager y admin
+    Route::middleware('role:admin|manager')->group(function () {
+        Route::resource('purchase-orders', PurchaseOrderController::class)
+            ->only(['create', 'store', 'edit', 'update', 'destroy'])
+            ->parameters(['purchase-orders' => 'purchaseOrder']);
+        Route::patch('purchase-orders/{purchaseOrder}/send',    [PurchaseOrderController::class, 'send'])->name('purchase-orders.send');
+        Route::patch('purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive');
+        Route::patch('purchase-orders/{purchaseOrder}/cancel',  [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+        Route::get('purchase-orders/{purchaseOrder}/pdf',       [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
+        Route::get('purchase-orders/export/pdf',                [PurchaseOrderController::class, 'listPdf'])->name('purchase-orders.list-pdf');
+    });
+
     // Show routes — registradas DESPUÉS de /*/create para que no las intercepten
-    Route::resource('categories', CategoryController::class)->only(['show']);
-    Route::resource('products',   ProductController::class)->only(['show']);
-    Route::resource('suppliers',  SupplierController::class)->only(['show']);
-    Route::resource('warehouses', WarehouseController::class)->only(['show']);
-    Route::resource('transfers',  TransferController::class)->only(['show']);
+    Route::resource('categories',      CategoryController::class)->only(['show']);
+    Route::resource('products',        ProductController::class)->only(['show']);
+    Route::resource('suppliers',       SupplierController::class)->only(['show']);
+    Route::resource('warehouses',      WarehouseController::class)->only(['show']);
+    Route::resource('transfers',       TransferController::class)->only(['show']);
+    Route::resource('purchase-orders', PurchaseOrderController::class)
+        ->only(['show'])
+        ->parameters(['purchase-orders' => 'purchaseOrder']);
 
     // Exportaciones — manager y admin
     Route::middleware('role:admin|manager')->group(function () {

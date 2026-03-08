@@ -70,7 +70,22 @@
       "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan db:seed --class=ProductSeeder --verbose)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(/c/Users/User/.config/herd/bin/php84/php.exe artisan tinker --execute=\"echo ''Products: '' . \\\\App\\\\Models\\\\Product::count\\(\\) . '', Images: '' . \\\\App\\\\Models\\\\ProductImage::count\\(\\);\")",
-      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list --name=search)"
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list --name=search)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan migrate:status)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan notifications:table)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list --name=reports,notifications)",
+      "Bash($PHP /c/Users/User/Herd/veltory-app/artisan route:list)",
+      "Bash(ls /c/Users/User/Herd/veltory-app/app/Http/Controllers/Search* /c/Users/User/Herd/veltory-app/app/Http/Controllers/Notification* /c/Users/User/Herd/veltory-app/app/Http/Controllers/Report*)",
+      "Bash(ls /c/Users/User/Herd/veltory-app/resources/js/Components/Search* /c/Users/User/Herd/veltory-app/resources/js/Pages/Reports/)",
+      "Bash(PHP=/c/Users/User/.config/herd/bin/php84/php.exe $PHP /c/Users/User/Herd/veltory-app/artisan migrate:status)",
+      "Bash(export PHP=\"/c/Users/User/.config/herd/bin/php84/php.exe\")",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan migrate:status)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan route:list --path=notifications)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan route:list --path=purchase)",
+      "Bash(/c/Users/User/.config/herd/bin/php84/php.exe /c/Users/User/Herd/veltory-app/artisan migrate)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); reqs=d.get\\(''require'',{}\\); [print\\(k,v\\) for k,v in reqs.items\\(\\)]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); deps={**d.get\\(''dependencies'',{}\\),**d.get\\(''devDependencies'',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\)]\")"
     ]
   }
 }
